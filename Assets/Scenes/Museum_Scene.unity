@@ -3039,7 +3039,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2563429732134213952, guid: 332df604d1fc7fd46ae4013ce9b4a5d6, type: 3}
       propertyPath: SprintSpeed
-      value: 200
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 3795091336040275115, guid: 332df604d1fc7fd46ae4013ce9b4a5d6, type: 3}
       propertyPath: m_LocalPosition.x
@@ -15984,6 +15984,14 @@ PrefabInstance:
       propertyPath: m_RayTracingMode
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2400444487433619605, guid: f95c62cc929401d45b1e1dc35df72c4b, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 95e15263b3f5a90498229083b2d17240, type: 2}
+    - target: {fileID: 3446464396557366089, guid: f95c62cc929401d45b1e1dc35df72c4b, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 95e15263b3f5a90498229083b2d17240, type: 2}
     - target: {fileID: 5090185324079385013, guid: f95c62cc929401d45b1e1dc35df72c4b, type: 3}
       propertyPath: m_Size.x
       value: 3.5
@@ -16164,6 +16172,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Creepy_headless_statue
       objectReference: {fileID: 0}
+    - target: {fileID: 9028751782312074676, guid: f95c62cc929401d45b1e1dc35df72c4b, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 95e15263b3f5a90498229083b2d17240, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
