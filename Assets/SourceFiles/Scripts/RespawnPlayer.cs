@@ -72,10 +72,10 @@ namespace StarterAssets
 
     // Reset the camera's rotation
     ThirdPersonController thirdPersonController = GetComponent<ThirdPersonController>();
-    if (thirdPersonController != null)
-    {
-        thirdPersonController.ResetCameraRotation(90f); // Reset camera's Y rotation to 90 degrees
-    }
+    //if (thirdPersonController != null)
+    //{
+     //   thirdPersonController.ResetCameraRotation(90f); // Reset camera's Y rotation to 90 degrees
+    //}
 
     AudioSource.PlayClipAtPoint(respawnSound, transform.position);
 
