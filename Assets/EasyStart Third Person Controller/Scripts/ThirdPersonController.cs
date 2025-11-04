@@ -1,41 +1,52 @@
-﻿
-using UnityEditor.VersionControl;
-using UnityEngine;
+﻿using UnityEngine;
+using UnityEngine.UI;
 
-/*
-    This file has a commented version with details about how each line works. 
-    The commented version contains code that is easier and simpler to read. This file is minified.
-*/
-
-
-/// <summary>
-/// Main script for third-person movement of the character in the game.
-/// Make sure that the object that will receive this script (the player) 
-/// has the Player tag and the Character Controller component.
-/// </summary>
 public class ThirdPersonController : MonoBehaviour
 {
-
-    [Tooltip("Speed ​​at which the character moves. It is not affected by gravity or jumping.")]
+    [Header("Movement")]
     public float velocity = 5f;
-    [Tooltip("This value is added to the speed value while the character is sprinting.")]
     public float sprintAdittion = 3.5f;
-    [Tooltip("The higher the value, the higher the character will jump.")]
     public float jumpForce = 18f;
-    [Tooltip("Stay in the air. The higher the value, the longer the character floats before falling.")]
     public float jumpTime = 0.85f;
     [Space]
-    [Tooltip("Force that pulls the player down. Changing this value causes all movement, jumping and falling to be changed as well.")]
     public float gravity = 9.8f;
+    public float crouch_speed = 0.5f;
+
+    [Space]
+    [Header("Crouch Physics")]
+    public float standingHeight = 2.0f;
+    public float crouchingHeight = 1.0f;
+    public float standingCenterY = 1.0f;
+    public float crouchingCenterY = 0.5f;
+
+    [Space]
+    [Header("Weapon")]
+    public KeyCode armWeaponKey = KeyCode.F;
+    public GameObject weaponModel;
+    public HitscanGun playerGunScript;
+
+    [Space]
+    [Header("Aim Down Sights (ADS)")]
+    public float defaultFOV = 60f;
+    public float zoomedFOV = 40f;
+    public float fovSmoothSpeed = 10f;
+
+    [Space]
+    [Header("UI")]
+    public Image crosshairImage;
+
+    [Space]
+    [Header("Animation Smoothing")]
+    [Tooltip("Animasyon geçişlerinin ne kadar yumuşak (yavaş) olacağı. Düşük = Yavaş, Yüksek = Hızlı.")]
+    public float animationSmoothSpeed = 15f;
 
     float jumpElapsedTime = 0;
 
-    // Player states
     bool isJumping = false;
     bool isSprinting = false;
     bool isCrouching = false;
+    bool isArmed = false;
 
-    // Inputs
     float inputHorizontal;
     float inputVertical;
     bool inputJump;
@@ -45,95 +56,165 @@ public class ThirdPersonController : MonoBehaviour
     Animator animator;
     CharacterController cc;
 
+    private float smoothedSpeed = 0f;
+    private Camera mainCamera;
 
     void Start()
     {
         cc = GetComponent<CharacterController>();
         animator = GetComponent<Animator>();
 
-        // Message informing the user that they forgot to add an animator
         if (animator == null)
             Debug.LogWarning("Hey buddy, you don't have the Animator component in your player. Without it, the animations won't work.");
+
+        cc.height = standingHeight;
+        cc.center = new Vector3(cc.center.x, standingCenterY, cc.center.z);
+
+        if (weaponModel != null)
+        {
+            weaponModel.SetActive(false);
+        }
+
+        if (crosshairImage != null)
+        {
+            crosshairImage.gameObject.SetActive(false);
+        }
+
+        mainCamera = Camera.main;
+        if (mainCamera != null)
+        {
+            mainCamera.fieldOfView = defaultFOV;
+        }
     }
 
-
-    // Update is only being used here to identify keys and trigger animations
     void Update()
     {
-
-        // Input checkers
         inputHorizontal = Input.GetAxis("Horizontal");
         inputVertical = Input.GetAxis("Vertical");
         inputJump = Input.GetAxis("Jump") == 1f;
         inputSprint = Input.GetAxis("Fire3") == 1f;
-        // Unfortunately GetAxis does not work with GetKeyDown, so inputs must be taken individually
         inputCrouch = Input.GetKeyDown(KeyCode.LeftControl) || Input.GetKeyDown(KeyCode.JoystickButton1);
 
-        // Check if you pressed the crouch input key and change the player's state
-        if ( inputCrouch )
-            isCrouching = !isCrouching;
-
-        // Run and Crouch animation
-        // If dont have animator component, this block wont run
-        if ( cc.isGrounded && animator != null )
+        if (Input.GetKeyDown(armWeaponKey))
         {
+            isArmed = !isArmed;
 
-            // Crouch
-            // Note: The crouch animation does not shrink the character's collider
-            animator.SetBool("crouch", isCrouching);
-            
-            // Run
-            float minimumSpeed = 0.9f;
-            animator.SetBool("run", cc.velocity.magnitude > minimumSpeed );
-
-            // Sprint
-            isSprinting = cc.velocity.magnitude > minimumSpeed && inputSprint;
-            animator.SetBool("sprint", isSprinting );
-
+            if (weaponModel != null)
+            {
+                weaponModel.SetActive(isArmed);
+            }
         }
 
-        // Jump animation
-        if( animator != null )
-            animator.SetBool("air", cc.isGrounded == false );
+        if (isArmed && Input.GetButton("Fire1"))
+        {
+            if (playerGunScript != null)
+            {
+                playerGunScript.TryToShoot();
+            }
+        }
 
-        // Handle can jump or not
-        if ( inputJump && cc.isGrounded )
+        if (inputCrouch)
+        {
+            if (isCrouching)
+            {
+                if (!CanStandUp())
+                {
+                    isCrouching = true;
+                }
+                else
+                {
+                    isCrouching = false;
+                    cc.height = standingHeight;
+                    cc.center = new Vector3(cc.center.x, standingCenterY, cc.center.z);
+                }
+            }
+            else
+            {
+                isCrouching = true;
+                cc.height = crouchingHeight;
+                cc.center = new Vector3(cc.center.x, crouchingCenterY, cc.center.z);
+                cc.Move(Vector3.down * 0.05f);
+            }
+        }
+
+        if (cc.isGrounded && animator != null)
+        {
+            animator.SetBool("crouch", isCrouching);
+
+            float minimumSpeed = 0.9f;
+            isSprinting = cc.velocity.magnitude > minimumSpeed && inputSprint;
+
+            float targetSpeed = 0f;
+
+            if (cc.velocity.magnitude > 0.1f)
+            {
+                if (isCrouching)
+                {
+                    targetSpeed = 1.0f;
+                }
+                else
+                {
+                    targetSpeed = isSprinting ? 2.0f : 1.0f;
+                }
+            }
+
+            smoothedSpeed = Mathf.Lerp(smoothedSpeed, targetSpeed, Time.deltaTime * animationSmoothSpeed);
+            animator.SetFloat("Speed", smoothedSpeed);
+        }
+
+        if (animator != null)
+        {
+            animator.SetBool("air", cc.isGrounded == false);
+            animator.SetBool("isArmed", isArmed);
+        }
+
+        if (inputJump && cc.isGrounded)
         {
             isJumping = true;
-            // Disable crounching when jumping
-            //isCrouching = false; 
+            if (isCrouching)
+            {
+                isCrouching = false;
+                cc.height = standingHeight;
+                cc.center = new Vector3(cc.center.x, standingCenterY, cc.center.z);
+            }
         }
 
         HeadHittingDetect();
-
+        HandleAiming();
     }
 
+    private void HandleAiming()
+    {
+        if (mainCamera == null) return;
 
-    // With the inputs and animations defined, FixedUpdate is responsible for applying movements and actions to the player
+        bool isAiming = isArmed && (Input.GetMouseButton(1) || Input.GetMouseButtonDown(1));
+
+        float targetFOV = isAiming ? zoomedFOV : defaultFOV;
+        mainCamera.fieldOfView = Mathf.Lerp(mainCamera.fieldOfView, targetFOV, Time.deltaTime * fovSmoothSpeed);
+
+        if (crosshairImage != null)
+        {
+            bool showCrosshair = isArmed;
+            crosshairImage.gameObject.SetActive(showCrosshair);
+        }
+    }
+
     private void FixedUpdate()
     {
-
-        // Sprinting velocity boost or crounching desacelerate
         float velocityAdittion = 0;
-        if ( isSprinting )
+        if (isSprinting)
             velocityAdittion = sprintAdittion;
         if (isCrouching)
-            velocityAdittion =  - (velocity * 0.50f); // -50% velocity
+            velocityAdittion = -(velocity * crouch_speed);
 
-        // Direction movement
         float directionX = inputHorizontal * (velocity + velocityAdittion) * Time.deltaTime;
         float directionZ = inputVertical * (velocity + velocityAdittion) * Time.deltaTime;
         float directionY = 0;
 
-        // Jump handler
-        if ( isJumping )
+        if (isJumping)
         {
-
-            // Apply inertia and smoothness when climbing the jump
-            // It is not necessary when descending, as gravity itself will gradually pulls
             directionY = Mathf.SmoothStep(jumpForce, jumpForce * 0.30f, jumpElapsedTime / jumpTime) * Time.deltaTime;
 
-            // Jump timer
             jumpElapsedTime += Time.deltaTime;
             if (jumpElapsedTime >= jumpTime)
             {
@@ -142,11 +223,7 @@ public class ThirdPersonController : MonoBehaviour
             }
         }
 
-        // Add gravity to Y axis
         directionY = directionY - gravity * Time.deltaTime;
-
-        
-        // --- Character rotation --- 
 
         Vector3 forward = Camera.main.transform.forward;
         Vector3 right = Camera.main.transform.right;
@@ -157,7 +234,6 @@ public class ThirdPersonController : MonoBehaviour
         forward.Normalize();
         right.Normalize();
 
-        // Relate the front with the Z direction (depth) and right with X (lateral movement)
         forward = forward * directionZ;
         right = right * directionX;
 
@@ -168,27 +244,18 @@ public class ThirdPersonController : MonoBehaviour
             transform.rotation = Quaternion.Slerp(transform.rotation, rotation, 0.15f);
         }
 
-        // --- End rotation ---
-
-        
         Vector3 verticalDirection = Vector3.up * directionY;
         Vector3 horizontalDirection = forward + right;
 
         Vector3 moviment = verticalDirection + horizontalDirection;
-        cc.Move( moviment );
-
+        cc.Move(moviment);
     }
 
-
-    //This function makes the character end his jump if he hits his head on something
     void HeadHittingDetect()
     {
         float headHitDistance = 1.1f;
         Vector3 ccCenter = transform.TransformPoint(cc.center);
         float hitCalc = cc.height / 2f * headHitDistance;
-
-        // Uncomment this line to see the Ray drawed in your characters head
-        // Debug.DrawRay(ccCenter, Vector3.up * headHeight, Color.red);
 
         if (Physics.Raycast(ccCenter, Vector3.up, hitCalc))
         {
@@ -197,4 +264,16 @@ public class ThirdPersonController : MonoBehaviour
         }
     }
 
+    bool CanStandUp()
+    {
+        float headHitDistance = 1.1f;
+        Vector3 ccCenter = transform.TransformPoint(cc.center);
+        float hitCalc = (standingHeight / 2f) * headHitDistance;
+
+        if (Physics.Raycast(ccCenter, Vector3.up, hitCalc))
+        {
+            return false;
+        }
+        return true;
+    }
 }

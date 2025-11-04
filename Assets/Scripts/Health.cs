@@ -1,26 +1,43 @@
 using UnityEngine;
-using UnityEngine.Events; 
+using UnityEngine.Events;
 
+[RequireComponent(typeof(AudioSource))]
 public class Health : MonoBehaviour
 {
+    [Header("Stats")]
     public float maxHealth = 100f;
-    public float currentHealth;
+    [Tooltip("Bu değeri değiştirmene gerek yok, 'Awake'te ayarlanır.")]
+    [SerializeField] private float currentHealth;
 
+    // --- HATA ÇÖZÜMÜ: EKSİK OLAN KISIM BURASI ---
+    // 'SecurityAI' script'inin canı OKUMASINI sağlayan public özellik
+    public float CurrentHealth
+    {
+        get { return currentHealth; }
+    }
+    // --- ÇÖZÜM BİTTİ ---
+
+    [Header("FX")]
+    public AudioClip deathSound;
+    private AudioSource audioSource;
+    private bool isDead = false;
 
     public UnityEvent OnDie;
 
-    void Start()
+    void Awake()
     {
         currentHealth = maxHealth;
+        audioSource = GetComponent<AudioSource>();
+        audioSource.playOnAwake = false;
+        isDead = false;
     }
 
     public void TakeDamage(float amount)
     {
-
-        if (currentHealth <= 0) return;
+        if (isDead) return;
 
         currentHealth -= amount;
-        Debug.Log(gameObject.name + " " + amount + " hasar ald�, Can�: " + currentHealth);
+        Debug.Log(gameObject.name + " " + amount + " hasar aldı, Canı: " + currentHealth);
 
         if (currentHealth <= 0)
         {
@@ -30,35 +47,37 @@ public class Health : MonoBehaviour
 
     private void Die()
     {
-        Debug.Log(gameObject.name + " �ld�.");
+        if (isDead) return;
+        isDead = true;
 
+        Debug.Log(gameObject.name + " öldü.");
+
+        if (deathSound != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(deathSound);
+        }
 
         OnDie.Invoke();
 
-
         if (gameObject.CompareTag("Guard"))
         {
-
             UnityEngine.AI.NavMeshAgent agent = GetComponent<UnityEngine.AI.NavMeshAgent>();
             if (agent) agent.enabled = false;
 
-
             Animator anim = GetComponentInChildren<Animator>();
-            if (anim) anim.SetTrigger("Die");
+            if (anim)
+            {
+                anim.SetBool("isDead", true);
+            }
 
-
-            this.enabled = false;
             SecurityAI ai = GetComponent<SecurityAI>();
             if (ai) ai.enabled = false;
-
 
             Destroy(gameObject, 5f);
         }
         else if (gameObject.CompareTag("Player"))
         {
-
-            Debug.Log("OYUN B�TT�");
-
+            Debug.Log("OYUN BİTTİ");
         }
     }
 }

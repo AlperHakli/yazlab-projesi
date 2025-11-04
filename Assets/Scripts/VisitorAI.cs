@@ -8,9 +8,11 @@ public class VisitorAI : MonoBehaviour
     public float minWaitTime = 2f;
     public float maxWaitTime = 5f;
 
+    [Header("Performans Ayarý")]
+    public float optimizationDistance = 200f; 
+
     private NavMeshAgent agent;
     private Animator animator;
-
 
     private enum AIState
     {
@@ -20,6 +22,9 @@ public class VisitorAI : MonoBehaviour
     private AIState currentState;
     private float idleTimer = 0f;
 
+
+    private Transform playerTransform;
+
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
@@ -27,40 +32,59 @@ public class VisitorAI : MonoBehaviour
         agent.avoidancePriority = Random.Range(0, 1000);
 
 
+        GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
+        if (playerObject != null)
+        {
+            playerTransform = playerObject.transform;
+        }
+
         currentState = AIState.Idle;
         idleTimer = Random.Range(minWaitTime, maxWaitTime);
-
-
     }
 
     void Update()
     {
 
+        if (playerTransform != null)
+        {
+            float distanceToPlayer = Vector3.Distance(transform.position, playerTransform.position);
+
+
+            if (distanceToPlayer > optimizationDistance)
+            {
+                agent.isStopped = true;
+
+
+                if (animator != null)
+                {
+                    animator.SetBool("isWalking", false);
+                }
+                return;
+            }
+        }
+
+
+        agent.isStopped = false;
+
         if (currentState == AIState.Idle)
         {
-
             idleTimer -= Time.deltaTime;
             if (idleTimer <= 0f)
             {
-                StartWalkingState(); 
+                StartWalkingState();
             }
         }
         else if (currentState == AIState.Walking)
         {
-
             if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance)
             {
-
                 StartIdleState();
             }
-
             else if (!agent.pathPending && (agent.pathStatus == NavMeshPathStatus.PathPartial || agent.pathStatus == NavMeshPathStatus.PathInvalid))
             {
-
                 StartIdleState();
             }
         }
-
 
         UpdateAnimation();
     }
@@ -77,24 +101,17 @@ public class VisitorAI : MonoBehaviour
         }
     }
 
-
     void UpdateAnimation()
     {
         if (animator == null) return;
-
-
         float intendedSpeed = agent.desiredVelocity.magnitude;
-
-
         animator.SetBool("isWalking", intendedSpeed > 0.1f);
     }
-
 
     void StartIdleState()
     {
         currentState = AIState.Idle;
         idleTimer = Random.Range(minWaitTime, maxWaitTime);
-
     }
 
     void StartWalkingState()
