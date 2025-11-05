@@ -47,8 +47,13 @@ public class SecurityAI : MonoBehaviour
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponentInChildren<Animator>();
         health = GetComponent<Health>();
-        gun = GetComponentInChildren<HitscanGun>();
+        gun = GetComponentInChildren<HitscanGun>(true);
         player = GameObject.FindGameObjectWithTag("Player").transform;
+
+        if (gun != null)
+        {
+            gun.gameObject.SetActive(false);
+        }
 
         agent.speed = patrolSpeed;
         currentState = AIState.Patrol;
@@ -67,33 +72,35 @@ public class SecurityAI : MonoBehaviour
     {
         if (health.CurrentHealth <= 0 || player == null)
         {
-            if (agent.enabled)
-            {
-                agent.isStopped = true;
-            }
+            UpdateAnimation();
             return;
         }
 
         chaseUpdateTimer -= Time.deltaTime;
         decisionUpdateTimer -= Time.deltaTime;
 
-        HandleStateTransitions();
+        if (decisionUpdateTimer <= 0f)
+        {
+            HandleStateTransitions();
+            decisionUpdateTimer = decisionUpdateInterval;
+        }
+
         ExecuteCurrentState();
         UpdateAnimation();
     }
 
     private void HandleStateTransitions()
     {
-        if (decisionUpdateTimer <= 0f)
-        {
-            internalCanSeePlayer = CanSeePlayer();
-            decisionUpdateTimer = decisionUpdateInterval;
-        }
-
+        bool canSeePlayer = CanSeePlayer();
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
 
-        if (isAlarmTriggered || internalCanSeePlayer)
+        if (isAlarmTriggered || canSeePlayer)
         {
+            if (gun != null && !gun.gameObject.activeInHierarchy)
+            {
+                gun.gameObject.SetActive(true);
+            }
+
             if (distanceToPlayer <= attackRange)
             {
                 if (currentState != AIState.Attack)
@@ -117,6 +124,11 @@ public class SecurityAI : MonoBehaviour
         {
             if (currentState == AIState.Chase || currentState == AIState.Attack)
             {
+                if (gun != null && gun.gameObject.activeInHierarchy)
+                {
+                    gun.gameObject.SetActive(false);
+                }
+
                 agent.speed = patrolSpeed;
                 currentState = AIState.Patrol;
                 GoToNextPatrolPoint();
@@ -202,6 +214,12 @@ public class SecurityAI : MonoBehaviour
         if (animator == null) return;
 
         bool isMoving = agent.velocity.magnitude > 0.1f;
+
+        if (health.CurrentHealth <= 0)
+        {
+            isMoving = false;
+        }
+
         bool isAlerted = (currentState == AIState.Chase || currentState == AIState.Attack);
 
         animator.SetBool("isMoving", isMoving);

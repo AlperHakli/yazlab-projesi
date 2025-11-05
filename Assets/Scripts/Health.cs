@@ -6,16 +6,13 @@ public class Health : MonoBehaviour
 {
     [Header("Stats")]
     public float maxHealth = 100f;
-    [Tooltip("Bu değeri değiştirmene gerek yok, 'Awake'te ayarlanır.")]
+
     [SerializeField] private float currentHealth;
 
-    // --- HATA ÇÖZÜMÜ: EKSİK OLAN KISIM BURASI ---
-    // 'SecurityAI' script'inin canı OKUMASINI sağlayan public özellik
     public float CurrentHealth
     {
         get { return currentHealth; }
     }
-    // --- ÇÖZÜM BİTTİ ---
 
     [Header("FX")]
     public AudioClip deathSound;
@@ -73,8 +70,32 @@ public class Health : MonoBehaviour
             SecurityAI ai = GetComponent<SecurityAI>();
             if (ai) ai.enabled = false;
 
+            Collider col = GetComponent<Collider>();
+            if (col != null) col.enabled = false;
+
             Destroy(gameObject, 5f);
         }
+
+        else if (gameObject.CompareTag("Visitor"))
+        {
+            UnityEngine.AI.NavMeshAgent agent = GetComponent<UnityEngine.AI.NavMeshAgent>();
+            if (agent) agent.enabled = false;
+
+            Animator anim = GetComponentInChildren<Animator>();
+            if (anim)
+            {
+                anim.SetBool("isDead", true);
+            }
+
+            VisitorAI ai = GetComponent<VisitorAI>();
+            if (ai) ai.enabled = false;
+
+            Collider col = GetComponent<Collider>();
+            if (col != null) col.enabled = false;
+
+            Destroy(gameObject, 5f);
+        }
+
         else if (gameObject.CompareTag("Player"))
         {
             Debug.Log("OYUN BİTTİ");

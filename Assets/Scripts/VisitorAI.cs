@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.AI;
-
+[RequireComponent(typeof(Health))]
+[RequireComponent(typeof(NavMeshAgent))]
 public class VisitorAI : MonoBehaviour
 {
     [Header("Dolaþma Ayarlarý")]
@@ -13,6 +14,7 @@ public class VisitorAI : MonoBehaviour
 
     private NavMeshAgent agent;
     private Animator animator;
+    private Health health;
 
     private enum AIState
     {
@@ -29,6 +31,7 @@ public class VisitorAI : MonoBehaviour
     {
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponentInChildren<Animator>();
+        health = GetComponent<Health>();
         agent.avoidancePriority = Random.Range(0, 1000);
 
 
@@ -44,6 +47,16 @@ public class VisitorAI : MonoBehaviour
 
     void Update()
     {
+
+        if (health.CurrentHealth <= 0)
+        {
+            if (agent.enabled)
+            {
+                agent.isStopped = true;
+            }
+            return;
+        }
+
 
         if (playerTransform != null)
         {
