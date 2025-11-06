@@ -1,6 +1,6 @@
 # Unity Müze Soygunu Projesi
 
-Bu proje, Kocaeli Üviversitesi Bilişim Sistemleri Mühendisliği yazlab-1 dersi için Unity oyun motoru kullanılarak geliştirilmiş, üçüncü şahıs (TPS) bir gizlilik/aksiyon oyunudur. Oyuncunun amacı, müzeye sızmak monalisa tablosunu çalmak ve öldürülmeden önce kaçış noktasına ulaşmaktır 
+Bu proje, Kocaeli Üniversitesi Bilişim Sistemleri Mühendisliği yazlab-1 dersi için Unity oyun motoru kullanılarak geliştirilmiş, üçüncü şahıs (TPS) bir gizlilik/aksiyon oyunudur. Oyuncunun amacı, müzeye sızmak monalisa tablosunu çalmak ve öldürülmeden önce kaçış noktasına ulaşmaktır 
 
 ## 👾 Temel Özellikler
 
