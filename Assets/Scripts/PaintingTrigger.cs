@@ -4,6 +4,7 @@ using UnityEngine;
 public class PaintingTrigger : MonoBehaviour
 {
     public float timeToSteal = 4.0f;
+    public GameObject Image_Object;
     private float stealTimer = 0f;
     private bool playerIsInside = false;
 
@@ -49,6 +50,7 @@ public class PaintingTrigger : MonoBehaviour
 
                 Debug.Log("ALARM! Tablo çalýndý!");
 
+                Image_Object.SetActive(false);
 
                 SecurityAI.isAlarmTriggered = true;
 
